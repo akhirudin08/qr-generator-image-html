@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QR Generator Final</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0; padding: 2rem;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      padding: 2rem;
+      max-width: 380px;
+      text-align: center;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark .card {
+      background: #222;
+      color: white;
+      box-shadow: 0 6px 20px rgba(255,255,255,0.08);
+    }
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(30,144,255,0.4);
+      margin-top: 1rem;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      background: #eee;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    button svg {
+      width: 1rem;
+      height: 1rem;
+      vertical-align: middle;
+    }
+    button:hover {
+      background: #1e90ff;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .dark {
+      background: #121212;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>QR Code Generator</h2>
+    <input type="text" id="linkInput" placeholder="Paste link di sini" size="36"><br><br>
+    <input type="file" id="imgInput" accept="image/*"><br>
+
+    <button id="cancelImgBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      Cancel Gambar
+    </button><br><br>
+
+    <canvas id="qrCanvas" width="256" height="256"></canvas><br>
+
+    <button id="downloadBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download
+    </button><br>
+
+    <button onclick="toggleDarkMode()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 0010.58 9.79z" fill="currentColor"/></svg>
+      Dark Mode
+    </button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+    const linkInput = document.getElementById('linkInput');
+    const imgInput = document.getElementById('imgInput');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const cancelImgBtn = document.getElementById('cancelImgBtn');
+
+    let overlayImage = null;
+
+    function generateQR(link, overlayImg) {
+      const qr = qrcode(0, 'H');
+      qr.addData(link);
+      qr.make();
+
+      const size = canvas.width;
+      const tile = size / qr.getModuleCount();
+
+      ctx.clearRect(0, 0, size, size);
+
+      for (let row = 0; row < qr.getModuleCount(); row++) {
+        for (let col = 0; col < qr.getModuleCount(); col++) {
+          ctx.fillStyle = qr.isDark(row, col) ? "#000" : "#fff";
+          ctx.fillRect(col * tile, row * tile, tile, tile);
+        }
+      }
+
+      if (overlayImg) {
+        const imgSize = size * 0.3;
+        ctx.drawImage(overlayImg, (size - imgSize)/2, (size - imgSize)/2, imgSize, imgSize);
+      }
+
+      canvas.style.opacity = 0;
+      setTimeout(() => canvas.style.opacity = 1, 100);
+    }
+
+    imgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          overlayImage = new Image();
+          overlayImage.onload = () => {
+            if (linkInput.value) generateQR(linkInput.value, overlayImage);
+          };
+          overlayImage.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    linkInput.addEventListener('input', () => {
+      if (linkInput.value) generateQR(linkInput.value, overlayImage);
+    });
+
+    cancelImgBtn.addEventListener('click', () => {
+      overlayImage = null;
+      imgInput.value = '';
+      if (linkInput.value) generateQR(linkInput.value, null);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'qr.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+  </script>
+</body>
+</html>
